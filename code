@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ホテル検索 横断くん</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; line-height: 1.5; margin: 24px; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input[type="text"] { padding: 10px 12px; font-size: 16px; }
+    button { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+    ul { padding-left: 18px; }
+    li { margin: 6px 0; }
+    .muted { color:#666; font-size: 12px; }
+    .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 14px; }
+    .spacer { flex: 1; }
+
+    .field { position: relative; flex: 1 1 320px; min-width: 260px; }
+    .field input { width: 100%; box-sizing: border-box; padding-right: 56px; }
+
+    .clearBtn{
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      width:38px;
+      height:38px;
+      padding:0;
+      border-radius:999px;
+      border:2px solid #bbb;
+      background:#f1f1f1;
+      cursor:pointer;
+      display:none;
+      font-size:22px;
+      font-weight:800;
+      line-height:1;
+      color:#111;
+      align-items:center;
+      justify-content:center;
+    }
+    .clearBtn:hover { background:#e7e7e7; }
+    .clearBtn:active { transform: translateY(-50%) scale(0.98); }
+
+    .sites { margin: 14px 0 10px; display: grid; gap: 10px; }
+    .siteRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .siteMain { display:flex; gap: 8px; align-items:center; }
+    .siteRegion { display:flex; gap: 6px; align-items:center; color:#333; font-size: 13px; }
+    .siteRegion input { transform: translateY(1px); }
+
+    .history { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .chipWrap { display: inline-flex; align-items: center; border: 1px solid #ddd; border-radius: 999px; overflow: hidden; background: #fff; }
+    .chipBtn { border: 0; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 13px; }
+    .chipBtn:hover { background: #f7f7f7; }
+    .chipDel { border: 0; border-left: 1px solid #ddd; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 14px; line-height: 1; }
+    .chipDel:hover { background: #ffecec; }
+
+    @media (max-width: 700px) {
+      .row { flex-direction: column; align-items: stretch; }
+      .field { flex: 0 0 auto; width: 100%; min-width: 0; }
+      #gen { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>ホテル検索 横断くん</h1>
+
+  <div class="row">
+    <div class="field">
+      <input id="q" type="text" placeholder="ホテル名（例：帝国ホテル東京）" />
+      <button id="clearQ" class="clearBtn" type="button" aria-label="ホテル名を消す">×</button>
+    </div>
+
+    <div class="field">
+      <input id="region" type="text" placeholder="地域（例：新宿 / 銀座 / 箱根 / 大阪）※任意" />
+      <button id="clearRegion" class="clearBtn" type="button" aria-label="地域を消す">×</button>
+    </div>
+
+    <button id="gen">検索</button>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <div class="muted">検索先（左＝サイトON / 右＝地域を含める）</div>
+      <div class="spacer"></div>
+      <button id="checkAll" title="全サイトON">全選択</button>
+      <button id="uncheckAll" title="全サイトOFF">全解除</button>
+    </div>
+    <div id="sites" class="sites"></div>
+  </div>
+
+  <div class="box">
+    <div class="muted">検索結果</div>
+    <ul id="out"></ul>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <div class="muted">検索履歴（クリックで再検索 / ×で個別削除）</div>
+      <div class="spacer"></div>
+      <button id="clearHistory">履歴をクリア</button>
+      <button id="toggleHistoryOrder">並び：新しい順</button>
+    </div>
+    <div id="history" class="history"></div>
+  </div>
+
+<script>
+  const enc = (s) => encodeURIComponent((s ?? "").trim());
+
+  const STORAGE_KEYS = {
+    historyOrder: "hotel_xb_history_order_v1",
+    sitePrefs: "hotel_xb_site_prefs_v1",
+    history: "hotel_xb_history_v1",
+  };
+
+  const safeJsonParse = (s, fallback) => {
+    try { return JSON.parse(s); } catch { return fallback; }
+  };
+
+  const buildQuery = (name, region) => {
+    const n = (name ?? "").trim();
+    const r = (region ?? "").trim();
+    return r ? `${n} ${r}` : n;
+  };
+
+  const siteSearchUrl = (domain, query) =>
+    `https://www.google.com/search?q=${enc(`site:${domain} ${query}`)}`;
+
+  const SITES = [
+    {
+      id: "rakuten",
+      label: "楽天トラベル",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("travel.rakuten.co.jp", ctx.query)
+    },
+    {
+      id: "jalan",
+      label: "じゃらん",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("jalan.net", ctx.query)
+    },
+    {
+      id: "yahoo_travel",
+      label: "Yahooトラベル",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("travel.yahoo.co.jp", ctx.query)
+    },
+    {
+      id: "ikyu",
+      label: "一休.com",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("ikyu.com", ctx.query)
+    },
+    {
+      id: "jtb",
+      label: "JTB",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("jtb.co.jp", ctx.query)
+    },
+    {
+      id: "booking",
+      label: "Booking.com",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("booking.com", ctx.query)
+    },
+    {
+      id: "expedia",
+      label: "Expedia",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("expedia.com", ctx.query)
+    },
+    {
+      id: "agoda",
+      label: "Agoda",
+      useRegionDefault: true,
+      build: (ctx) => siteSearchUrl("agoda.com", ctx.query)
+    },
+  ];
+
+  const $sites = document.getElementById("sites");
+  const $q = document.getElementById("q");
+  const $region = document.getElementById("region");
+  const $out = document.getElementById("out");
+  const $history = document.getElementById("history");
+  const $clearQ = document.getElementById("clearQ");
+  const $clearRegion = document.getElementById("clearRegion");
+
+  function syncClearButtons() {
+    $clearQ.style.display = $q.value ? "inline-flex" : "none";
+    $clearRegion.style.display = $region.value ? "inline-flex" : "none";
+  }
+  $q.addEventListener("input", syncClearButtons);
+  $region.addEventListener("input", syncClearButtons);
+  $clearQ.addEventListener("click", () => { $q.value = ""; syncClearButtons(); $q.focus(); });
+  $clearRegion.addEventListener("click", () => { $region.value = ""; syncClearButtons(); $region.focus(); });
+  syncClearButtons();
+
+  function getHistoryOrder() {
+    return localStorage.getItem(STORAGE_KEYS.historyOrder) || "new";
+  }
+  function setHistoryOrder(v) {
+    localStorage.setItem(STORAGE_KEYS.historyOrder, v);
+  }
+  function historyOrderLabel(v) {
+    return v === "old" ? "並び：古い順" : "並び：新しい順";
+  }
+
+  function loadSitePrefs() {
+    const raw = localStorage.getItem(STORAGE_KEYS.sitePrefs);
+    return safeJsonParse(raw, null);
+  }
+  function saveSitePrefs(prefs) {
+    localStorage.setItem(STORAGE_KEYS.sitePrefs, JSON.stringify(prefs));
+  }
+  function collectSitePrefsFromUI() {
+    const prefs = {};
+    for (const s of SITES) {
+      const en = $sites.querySelector(`input[data-site-id="${s.id}"][data-type="enabled"]`);
+      const rg = $sites.querySelector(`input[data-site-id="${s.id}"][data-type="region"]`);
+      prefs[s.id] = { enabled: !!en?.checked, useRegion: !!rg?.checked };
+    }
+    return prefs;
+  }
+
+  function buildSiteCheckboxes() {
+    const prefs = loadSitePrefs();
+    $sites.innerHTML = "";
+
+    for (const s of SITES) {
+      const row = document.createElement("div");
+      row.className = "siteRow";
+
+      const mainLabel = document.createElement("label");
+      mainLabel.className = "siteMain";
+      const cbEnable = document.createElement("input");
+      cbEnable.type = "checkbox";
+      cbEnable.dataset.siteId = s.id;
+      cbEnable.dataset.type = "enabled";
+      cbEnable.checked = prefs ? !!prefs[s.id]?.enabled : true;
+
+      const span = document.createElement("span");
+      span.textContent = s.label;
+
+      mainLabel.appendChild(cbEnable);
+      mainLabel.appendChild(span);
+
+      const regionLabel = document.createElement("label");
+      regionLabel.className = "siteRegion";
+      const cbRegion = document.createElement("input");
+      cbRegion.type = "checkbox";
+      cbRegion.dataset.siteId = s.id;
+      cbRegion.dataset.type = "region";
+      cbRegion.checked = prefs ? !!prefs[s.id]?.useRegion : (s.useRegionDefault ?? true);
+
+      const rgText = document.createElement("span");
+      rgText.textContent = "地域";
+
+      regionLabel.appendChild(cbRegion);
+      regionLabel.appendChild(rgText);
+
+      const onChange = () => saveSitePrefs(collectSitePrefsFromUI());
+      cbEnable.addEventListener("change", onChange);
+      cbRegion.addEventListener("change", onChange);
+
+      row.appendChild(mainLabel);
+      row.appendChild(regionLabel);
+      $sites.appendChild(row);
+    }
+
+    if (!prefs) saveSitePrefs(collectSitePrefsFromUI());
+  }
+
+  function selectedSitesWithOptions() {
+    const prefs = collectSitePrefsFromUI();
+    return SITES
+      .filter(s => prefs[s.id]?.enabled)
+      .map(s => ({ site: s, useRegion: prefs[s.id]?.useRegion }));
+  }
+
+  function loadHistory() {
+    const raw = localStorage.getItem(STORAGE_KEYS.history);
+    const arr = safeJsonParse(raw, []);
+    return Array.isArray(arr) ? arr : [];
+  }
+  function saveHistory(arr) {
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(arr));
+  }
+  function historyKey(name, region) {
+    return `${(name ?? "").trim()}|||${(region ?? "").trim()}`;
+  }
+
+  function renderHistory() {
+    const items = loadHistory();
+    const order = getHistoryOrder();
+    if (order === "old") items.reverse();
+
+    $history.innerHTML = "";
+    if (!items.length) {
+      const span = document.createElement("span");
+      span.className = "muted";
+      span.textContent = "まだ履歴はありません";
+      $history.appendChild(span);
+      return;
+    }
+
+    for (const it of items) {
+      const wrap = document.createElement("div");
+      wrap.className = "chipWrap";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chipBtn";
+      btn.textContent = `${it.name}${it.region ? `（${it.region}）` : ""}`;
+      btn.addEventListener("click", () => {
+        $q.value = it.name;
+        $region.value = it.region ?? "";
+        syncClearButtons();
+        generateLinks();
+      });
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "chipDel";
+      del.textContent = "×";
+      del.title = "この履歴を削除";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const key = historyKey(it.name, it.region);
+        const next = loadHistory().filter(x => historyKey(x.name, x.region) !== key);
+        saveHistory(next);
+        renderHistory();
+      });
+
+      wrap.appendChild(btn);
+      wrap.appendChild(del);
+      $history.appendChild(wrap);
+    }
+  }
+
+  function addToHistory(name, region) {
+    const n = (name ?? "").trim();
+    const r = (region ?? "").trim();
+    if (!n) return;
+
+    const items = loadHistory();
+    const key = historyKey(n, r);
+    const filtered = items.filter(x => historyKey(x.name, x.region) !== key);
+    filtered.unshift({ name: n, region: r, ts: Date.now() });
+    saveHistory(filtered.slice(0, 20));
+    renderHistory();
+  }
+
+  function generateLinks() {
+    const name = $q.value.trim();
+    const region = $region.value.trim();
+    if (!name) { $out.innerHTML = ""; return []; }
+
+    $out.innerHTML = "";
+
+    const selections = selectedSitesWithOptions();
+    const links = [];
+
+    for (const sel of selections) {
+      const s = sel.site;
+      const useRegion = sel.useRegion;
+      const query = useRegion ? buildQuery(name, region) : name;
+
+      const ctx = {
+        name,
+        region: useRegion ? region : "",
+        query
+      };
+
+      links.push({ label: s.label, url: s.build(ctx) });
+    }
+
+    for (const item of links) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = item.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = item.label;
+      li.appendChild(a);
+      $out.appendChild(li);
+    }
+
+    addToHistory(name, region);
+    return links;
+  }
+
+  document.getElementById("gen").addEventListener("click", () => {
+    syncClearButtons();
+    generateLinks();
+  });
+
+  document.getElementById("clearHistory").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEYS.history);
+    renderHistory();
+  });
+
+  const $toggleHistoryOrder = document.getElementById("toggleHistoryOrder");
+  function refreshHistoryOrderButton() {
+    $toggleHistoryOrder.textContent = historyOrderLabel(getHistoryOrder());
+  }
+  $toggleHistoryOrder.addEventListener("click", () => {
+    const next = getHistoryOrder() === "new" ? "old" : "new";
+    setHistoryOrder(next);
+    refreshHistoryOrderButton();
+    renderHistory();
+  });
+
+  document.getElementById("checkAll").addEventListener("click", () => {
+    for (const cb of $sites.querySelectorAll(`input[data-type="enabled"]`)) cb.checked = true;
+    saveSitePrefs(collectSitePrefsFromUI());
+  });
+
+  document.getElementById("uncheckAll").addEventListener("click", () => {
+    for (const cb of $sites.querySelectorAll(`input[data-type="enabled"]`)) cb.checked = false;
+    saveSitePrefs(collectSitePrefsFromUI());
+  });
+
+  function onEnter(e) {
+    if (e.key === "Enter") {
+      syncClearButtons();
+      generateLinks();
+    }
+  }
+  $q.addEventListener("keydown", onEnter);
+  $region.addEventListener("keydown", onEnter);
+
+  buildSiteCheckboxes();
+  refreshHistoryOrderButton();
+  renderHistory();
+</script>
+</body>
+</html>
