@@ -97,9 +97,7 @@
   <div class="box">
     <div class="row">
       <div class="muted">検索結果</div>
-      <div class="spacer"></div>
-      <button id="officialBtn" type="button" disabled>公式ページ</button>
-    </div>
+  
     <ul id="out"></ul>
   </div>
 
@@ -139,6 +137,12 @@
     `https://www.google.com/search?q=${enc(`${(name ?? "").trim()} 公式`)}`;
 
   const SITES = [
+    {
+  id: "official",
+  label: "公式ページ",
+  useRegionDefault: false,
+  build: (ctx) => `https://www.google.com/search?q=${enc(`${ctx.name} 公式`)}`
+},
     {
       id: "rakuten",
       label: "楽天トラベル",
