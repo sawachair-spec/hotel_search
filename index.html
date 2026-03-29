@@ -55,11 +55,6 @@
     .chipDel { border: 0; border-left: 1px solid #ddd; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 14px; line-height: 1; }
     .chipDel:hover { background: #ffecec; }
 
-    #officialBtn:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
     @media (max-width: 700px) {
       .row { flex-direction: column; align-items: stretch; }
       .field { flex: 0 0 auto; width: 100%; min-width: 0; }
@@ -95,9 +90,7 @@
   </div>
 
   <div class="box">
-    <div class="row">
-      <div class="muted">検索結果</div>
-  
+    <div class="muted">検索結果</div>
     <ul id="out"></ul>
   </div>
 
@@ -115,9 +108,9 @@
   const enc = (s) => encodeURIComponent((s ?? "").trim());
 
   const STORAGE_KEYS = {
-    historyOrder: "hotel_xb_history_order_v1",
-    sitePrefs: "hotel_xb_site_prefs_v1",
-    history: "hotel_xb_history_v1",
+    historyOrder: "hotel_xb_history_order_v2",
+    sitePrefs: "hotel_xb_site_prefs_v2",
+    history: "hotel_xb_history_v2",
   };
 
   const safeJsonParse = (s, fallback) => {
@@ -133,16 +126,13 @@
   const siteSearchUrl = (domain, query) =>
     `https://www.google.com/search?q=${enc(`site:${domain} ${query}`)}`;
 
-  const buildOfficialUrl = (name) =>
-    `https://www.google.com/search?q=${enc(`${(name ?? "").trim()} 公式`)}`;
-
   const SITES = [
     {
-  id: "official",
-  label: "公式ページ",
-  useRegionDefault: false,
-  build: (ctx) => `https://www.google.com/search?q=${enc(`${ctx.name} 公式`)}`
-},
+      id: "official",
+      label: "公式ページ",
+      useRegionDefault: false,
+      build: (ctx) => `https://www.google.com/search?q=${enc(`${ctx.name} 公式`)}`
+    },
     {
       id: "rakuten",
       label: "楽天トラベル",
@@ -169,13 +159,13 @@
     },
     {
       id: "jtb",
-      label: "JTB",
+      label: "jtb",
       useRegionDefault: true,
       build: (ctx) => siteSearchUrl("jtb.co.jp", ctx.query)
     },
     {
       id: "booking",
-      label: "Booking.com",
+      label: "booking.com",
       useRegionDefault: true,
       build: (ctx) => siteSearchUrl("booking.com", ctx.query)
     },
@@ -187,7 +177,7 @@
     },
     {
       id: "agoda",
-      label: "Agoda",
+      label: "agoda",
       useRegionDefault: true,
       build: (ctx) => siteSearchUrl("agoda.com", ctx.query)
     },
@@ -200,17 +190,10 @@
   const $history = document.getElementById("history");
   const $clearQ = document.getElementById("clearQ");
   const $clearRegion = document.getElementById("clearRegion");
-  const $officialBtn = document.getElementById("officialBtn");
-
-  function syncOfficialButton() {
-    const name = $q.value.trim();
-    $officialBtn.disabled = !name;
-  }
 
   function syncClearButtons() {
     $clearQ.style.display = $q.value ? "inline-flex" : "none";
     $clearRegion.style.display = $region.value ? "inline-flex" : "none";
-    syncOfficialButton();
   }
 
   $q.addEventListener("input", syncClearButtons);
@@ -226,12 +209,6 @@
     $region.value = "";
     syncClearButtons();
     $region.focus();
-  });
-
-  $officialBtn.addEventListener("click", () => {
-    const name = $q.value.trim();
-    if (!name) return;
-    window.open(buildOfficialUrl(name), "_blank", "noopener,noreferrer");
   });
 
   syncClearButtons();
@@ -282,7 +259,7 @@
       cbEnable.type = "checkbox";
       cbEnable.dataset.siteId = s.id;
       cbEnable.dataset.type = "enabled";
-      cbEnable.checked = prefs ? !!prefs[s.id]?.enabled : true;
+      cbEnable.checked = prefs && prefs[s.id] ? !!prefs[s.id].enabled : true;
 
       const span = document.createElement("span");
       span.textContent = s.label;
@@ -297,7 +274,9 @@
       cbRegion.type = "checkbox";
       cbRegion.dataset.siteId = s.id;
       cbRegion.dataset.type = "region";
-      cbRegion.checked = prefs ? !!prefs[s.id]?.useRegion : (s.useRegionDefault ?? true);
+      cbRegion.checked = prefs && prefs[s.id]
+        ? !!prefs[s.id].useRegion
+        : (s.useRegionDefault ?? true);
 
       const rgText = document.createElement("span");
       rgText.textContent = "地域";
@@ -344,6 +323,7 @@
     if (order === "old") items.reverse();
 
     $history.innerHTML = "";
+
     if (!items.length) {
       const span = document.createElement("span");
       span.className = "muted";
@@ -402,9 +382,9 @@
   function generateLinks() {
     const name = $q.value.trim();
     const region = $region.value.trim();
+
     if (!name) {
       $out.innerHTML = "";
-      syncOfficialButton();
       return [];
     }
 
@@ -439,7 +419,6 @@
     }
 
     addToHistory(name, region);
-    syncOfficialButton();
     return links;
   }
 
@@ -454,6 +433,7 @@
   });
 
   const $toggleHistoryOrder = document.getElementById("toggleHistoryOrder");
+
   function refreshHistoryOrderButton() {
     $toggleHistoryOrder.textContent = historyOrderLabel(getHistoryOrder());
   }
@@ -488,7 +468,6 @@
   buildSiteCheckboxes();
   refreshHistoryOrderButton();
   renderHistory();
-  syncOfficialButton();
 </script>
 </body>
 </html>
