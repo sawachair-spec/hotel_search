@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ホテル検索 横断くん</title>
   <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-      line-height: 1.5;
-      margin: 24px;
-    }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; line-height: 1.5; margin: 24px; }
     h1 { margin: 0 0 12px; font-size: 20px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     input[type="text"] { padding: 10px 12px; font-size: 16px; }
     button { padding: 10px 12px; font-size: 14px; cursor: pointer; }
-    .muted { color:#666; font-size: 12px; }
     .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 14px; }
+    .muted { color:#666; font-size: 12px; }
     .spacer { flex: 1; }
 
     .field { position: relative; flex: 1 1 320px; min-width: 260px; }
@@ -41,87 +37,27 @@
       align-items:center;
       justify-content:center;
     }
-    .clearBtn:hover { background:#e7e7e7; }
-    .clearBtn:active { transform: translateY(-50%) scale(0.98); }
 
     .sites { margin: 14px 0 10px; display: grid; gap: 10px; }
     .siteRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .siteMain { display:flex; gap: 8px; align-items:center; }
     .siteRegion { display:flex; gap: 6px; align-items:center; color:#333; font-size: 13px; }
-    .siteRegion input { transform: translateY(1px); }
-    .siteHint {
-      font-size: 12px;
-      color: #666;
-      margin-left: 4px;
-    }
 
     .resultList { list-style: none; padding-left: 0; margin: 10px 0 0; }
-    .resultItem {
-      border: 1px solid #e2e2e2;
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-    .resultTop {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .resultTop a {
-      font-weight: 700;
-      color: #0b57d0;
-      text-decoration: none;
-    }
-    .resultTop a:hover { text-decoration: underline; }
-
-    .badge {
-      display: inline-block;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid #cfcfcf;
-      background: #f7f7f7;
-      color: #333;
-    }
-    .badge.direct {
-      background: #eef7ee;
-      border-color: #bdd8bd;
-    }
-    .badge.official {
-      background: #f6f6fb;
-      border-color: #d5d7ee;
-    }
-
-    .resultActions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-
-    .searchText {
-      font-size: 13px;
-      background: #fafafa;
-      border: 1px dashed #d6d6d6;
-      border-radius: 8px;
-      padding: 8px 10px;
-      margin-bottom: 6px;
-      word-break: break-word;
-    }
+    .resultItem { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .resultItem a { font-weight: 700; }
+    .resultActions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .searchText { font-size:13px; background:#fafafa; border:1px dashed #d6d6d6; border-radius:8px; padding:8px 10px; margin-top:8px; }
 
     .history { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .chipWrap { display: inline-flex; align-items: center; border: 1px solid #ddd; border-radius: 999px; overflow: hidden; background: #fff; }
     .chipBtn { border: 0; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 13px; }
-    .chipBtn:hover { background: #f7f7f7; }
     .chipDel { border: 0; border-left: 1px solid #ddd; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 14px; line-height: 1; }
-    .chipDel:hover { background: #ffecec; }
 
     @media (max-width: 700px) {
       .row { flex-direction: column; align-items: stretch; }
       .field { flex: 0 0 auto; width: 100%; min-width: 0; }
-      #gen, #openAll { width: 100%; }
+      #gen { width: 100%; }
     }
   </style>
 </head>
@@ -131,41 +67,37 @@
   <div class="row">
     <div class="field">
       <input id="q" type="text" placeholder="ホテル名（例：帝国ホテル東京）" />
-      <button id="clearQ" class="clearBtn" type="button" aria-label="ホテル名を消す">×</button>
+      <button id="clearQ" class="clearBtn" type="button">×</button>
     </div>
 
     <div class="field">
       <input id="region" type="text" placeholder="地域（例：新宿 / 銀座 / 箱根 / 大阪）※任意" />
-      <button id="clearRegion" class="clearBtn" type="button" aria-label="地域を消す">×</button>
+      <button id="clearRegion" class="clearBtn" type="button">×</button>
     </div>
 
     <button id="gen">検索</button>
-    <button id="openAll" type="button">全部開く</button>
   </div>
 
   <div class="box">
     <div class="row">
       <div class="muted">検索先（左＝サイトON / 右＝地域を含める）</div>
       <div class="spacer"></div>
-      <button id="checkAll" title="全サイトON">全選択</button>
-      <button id="uncheckAll" title="全サイトOFF">全解除</button>
+      <button id="checkAll">全選択</button>
+      <button id="uncheckAll">全解除</button>
     </div>
     <div id="sites" class="sites"></div>
   </div>
 
   <div class="box">
-    <div class="muted">
-      検索結果。公式検索URLがあるサイトは直接結果へ。ないサイトは公式ページを開いて検索語をコピーします。
-    </div>
+    <div class="muted">検索結果</div>
     <ul id="out" class="resultList"></ul>
   </div>
 
   <div class="box">
     <div class="row">
-      <div class="muted">検索履歴（クリックで再検索 / ×で個別削除）</div>
+      <div class="muted">検索履歴</div>
       <div class="spacer"></div>
       <button id="clearHistory">履歴をクリア</button>
-      <button id="toggleHistoryOrder">並び：新しい順</button>
     </div>
     <div id="history" class="history"></div>
   </div>
@@ -174,19 +106,8 @@
   const enc = (s) => encodeURIComponent((s ?? "").trim());
 
   const STORAGE_KEYS = {
-    historyOrder: "hotel_xb_history_order_v2",
-    sitePrefs: "hotel_xb_site_prefs_v2",
-    history: "hotel_xb_history_v2",
-  };
-
-  const safeJsonParse = (s, fallback) => {
-    try { return JSON.parse(s); } catch { return fallback; }
-  };
-
-  const buildQuery = (name, region) => {
-    const n = (name ?? "").trim();
-    const r = (region ?? "").trim();
-    return r ? `${n} ${r}` : n;
+    sitePrefs: "hotel_xb_site_prefs_v3",
+    history: "hotel_xb_history_v3",
   };
 
   const SITES = [
@@ -195,82 +116,57 @@
       label: "楽天トラベル",
       useRegionDefault: true,
       mode: "direct",
-      badge: "公式検索URL",
-      hint: "直接検索",
-      note: "公式キーワード検索結果を直接開きます。",
-      build: (ctx) =>
-        `https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query=${enc(ctx.query)}`
+      build: (q) => `https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query=${enc(q)}`
     },
     {
       id: "jalan",
       label: "じゃらん",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "公式トップを開きます。検索語を貼り付けて使ってください。",
+      mode: "copy",
       build: () => "https://www.jalan.net/"
     },
     {
-      id: "yahoo_travel",
+      id: "yahoo",
       label: "Yahooトラベル",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      mode: "copy",
       build: () => "https://travel.yahoo.co.jp/"
     },
     {
       id: "ikyu",
       label: "一休.com",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      mode: "copy",
       build: () => "https://www.ikyu.com/"
     },
     {
       id: "jtb",
-      label: "JTB",
+      label: "jtb",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "JTB国内ホテルページを開きます。検索語を貼り付けて検索してください。",
+      mode: "copy",
       build: () => "https://www.jtb.co.jp/kokunai-hotel/"
     },
     {
       id: "booking",
-      label: "Booking.com",
+      label: "booking.com",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "公式ページを開きます。検索語を貼り付け、日付などを入れて検索してください。",
+      mode: "copy",
       build: () => "https://www.booking.com/"
     },
     {
       id: "expedia",
       label: "Expedia",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "ホテル検索ページを開きます。検索語を貼り付け、日付などを入れて検索してください。",
+      mode: "copy",
       build: () => "https://www.expedia.com/Hotels"
     },
     {
       id: "agoda",
-      label: "Agoda",
+      label: "agoda",
       useRegionDefault: true,
-      mode: "official-page",
-      badge: "公式ページ",
-      hint: "検索語コピー",
-      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      mode: "copy",
       build: () => "https://www.agoda.com/"
-    },
+    }
   ];
 
   const $sites = document.getElementById("sites");
@@ -281,38 +177,40 @@
   const $clearQ = document.getElementById("clearQ");
   const $clearRegion = document.getElementById("clearRegion");
 
+  function buildQuery(name, region) {
+    const n = (name || "").trim();
+    const r = (region || "").trim();
+    return r ? `${n} ${r}` : n;
+  }
+
   function syncClearButtons() {
     $clearQ.style.display = $q.value ? "inline-flex" : "none";
     $clearRegion.style.display = $region.value ? "inline-flex" : "none";
   }
+
   $q.addEventListener("input", syncClearButtons);
   $region.addEventListener("input", syncClearButtons);
   $clearQ.addEventListener("click", () => { $q.value = ""; syncClearButtons(); $q.focus(); });
   $clearRegion.addEventListener("click", () => { $region.value = ""; syncClearButtons(); $region.focus(); });
   syncClearButtons();
 
-  function getHistoryOrder() {
-    return localStorage.getItem(STORAGE_KEYS.historyOrder) || "new";
-  }
-  function setHistoryOrder(v) {
-    localStorage.setItem(STORAGE_KEYS.historyOrder, v);
-  }
-  function historyOrderLabel(v) {
-    return v === "old" ? "並び：古い順" : "並び：新しい順";
+  function loadSitePrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.sitePrefs)) || null;
+    } catch {
+      return null;
+    }
   }
 
-  function loadSitePrefs() {
-    const raw = localStorage.getItem(STORAGE_KEYS.sitePrefs);
-    return safeJsonParse(raw, null);
-  }
   function saveSitePrefs(prefs) {
     localStorage.setItem(STORAGE_KEYS.sitePrefs, JSON.stringify(prefs));
   }
+
   function collectSitePrefsFromUI() {
     const prefs = {};
     for (const s of SITES) {
-      const en = $sites.querySelector(`input[data-site-id="${s.id}"][data-type="enabled"]`);
-      const rg = $sites.querySelector(`input[data-site-id="${s.id}"][data-type="region"]`);
+      const en = document.querySelector(`input[data-site-id="${s.id}"][data-type="enabled"]`);
+      const rg = document.querySelector(`input[data-site-id="${s.id}"][data-type="region"]`);
       prefs[s.id] = { enabled: !!en?.checked, useRegion: !!rg?.checked };
     }
     return prefs;
@@ -338,13 +236,8 @@
       const span = document.createElement("span");
       span.textContent = s.label;
 
-      const hint = document.createElement("span");
-      hint.className = "siteHint";
-      hint.textContent = `(${s.hint})`;
-
       mainLabel.appendChild(cbEnable);
       mainLabel.appendChild(span);
-      mainLabel.appendChild(hint);
 
       const regionLabel = document.createElement("label");
       regionLabel.className = "siteRegion";
@@ -353,7 +246,7 @@
       cbRegion.type = "checkbox";
       cbRegion.dataset.siteId = s.id;
       cbRegion.dataset.type = "region";
-      cbRegion.checked = prefs ? !!prefs[s.id]?.useRegion : (s.useRegionDefault ?? true);
+      cbRegion.checked = prefs ? !!prefs[s.id]?.useRegion : true;
 
       const rgText = document.createElement("span");
       rgText.textContent = "地域";
@@ -381,23 +274,21 @@
   }
 
   function loadHistory() {
-    const raw = localStorage.getItem(STORAGE_KEYS.history);
-    const arr = safeJsonParse(raw, []);
-    return Array.isArray(arr) ? arr : [];
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.history)) || [];
+    } catch {
+      return [];
+    }
   }
+
   function saveHistory(arr) {
     localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(arr));
-  }
-  function historyKey(name, region) {
-    return `${(name ?? "").trim()}|||${(region ?? "").trim()}`;
   }
 
   function renderHistory() {
     const items = loadHistory();
-    const order = getHistoryOrder();
-    if (order === "old") items.reverse();
-
     $history.innerHTML = "";
+
     if (!items.length) {
       const span = document.createElement("span");
       span.className = "muted";
@@ -411,25 +302,20 @@
       wrap.className = "chipWrap";
 
       const btn = document.createElement("button");
-      btn.type = "button";
       btn.className = "chipBtn";
       btn.textContent = `${it.name}${it.region ? `（${it.region}）` : ""}`;
       btn.addEventListener("click", () => {
         $q.value = it.name;
-        $region.value = it.region ?? "";
+        $region.value = it.region || "";
         syncClearButtons();
         generateLinks();
       });
 
       const del = document.createElement("button");
-      del.type = "button";
       del.className = "chipDel";
       del.textContent = "×";
-      del.title = "この履歴を削除";
-      del.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const key = historyKey(it.name, it.region);
-        const next = loadHistory().filter(x => historyKey(x.name, x.region) !== key);
+      del.addEventListener("click", () => {
+        const next = loadHistory().filter(x => !(x.name === it.name && x.region === it.region));
         saveHistory(next);
         renderHistory();
       });
@@ -441,15 +327,10 @@
   }
 
   function addToHistory(name, region) {
-    const n = (name ?? "").trim();
-    const r = (region ?? "").trim();
-    if (!n) return;
-
-    const items = loadHistory();
-    const key = historyKey(n, r);
-    const filtered = items.filter(x => historyKey(x.name, x.region) !== key);
-    filtered.unshift({ name: n, region: r, ts: Date.now() });
-    saveHistory(filtered.slice(0, 20));
+    if (!name) return;
+    const items = loadHistory().filter(x => !(x.name === name && x.region === region));
+    items.unshift({ name, region });
+    saveHistory(items.slice(0, 20));
     renderHistory();
   }
 
@@ -458,181 +339,115 @@
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      let ok = false;
-      try {
-        ok = document.execCommand("copy");
-      } catch {
-        ok = false;
-      }
-      document.body.removeChild(ta);
-      return ok;
+      return false;
     }
-  }
-
-  async function openSiteWithCopy(item) {
-    if (item.mode === "official-page") {
-      await copyText(item.searchText);
-    }
-    window.open(item.url, "_blank", "noopener,noreferrer");
-  }
-
-  function buildResultItem(item) {
-    const li = document.createElement("li");
-    li.className = "resultItem";
-
-    const top = document.createElement("div");
-    top.className = "resultTop";
-
-    const link = document.createElement("a");
-    link.href = item.url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = item.label;
-
-    const badge = document.createElement("span");
-    badge.className = `badge ${item.mode === "direct" ? "direct" : "official"}`;
-    badge.textContent = item.badge;
-
-    top.appendChild(link);
-    top.appendChild(badge);
-
-    const actions = document.createElement("div");
-    actions.className = "resultActions";
-
-    const openBtn = document.createElement("button");
-    openBtn.type = "button";
-    openBtn.textContent = item.mode === "direct" ? "開く" : "開いて検索語をコピー";
-    openBtn.addEventListener("click", () => openSiteWithCopy(item));
-
-    const copyBtn = document.createElement("button");
-    copyBtn.type = "button";
-    copyBtn.textContent = "検索語をコピー";
-    copyBtn.addEventListener("click", async () => {
-      const ok = await copyText(item.searchText);
-      copyBtn.textContent = ok ? "コピー済み" : "コピー失敗";
-      setTimeout(() => { copyBtn.textContent = "検索語をコピー"; }, 1200);
-    });
-
-    actions.appendChild(openBtn);
-    actions.appendChild(copyBtn);
-
-    const searchText = document.createElement("div");
-    searchText.className = "searchText";
-    searchText.textContent = `検索語: ${item.searchText}`;
-
-    const note = document.createElement("div");
-    note.className = "muted";
-    note.textContent = item.note;
-
-    li.appendChild(top);
-    li.appendChild(actions);
-    li.appendChild(searchText);
-    li.appendChild(note);
-
-    return li;
   }
 
   function generateLinks() {
     const name = $q.value.trim();
     const region = $region.value.trim();
+
     if (!name) {
       $out.innerHTML = "";
-      return [];
+      return;
     }
 
-    $out.innerHTML = "";
-
     const selections = selectedSitesWithOptions();
-    const links = [];
+    const items = [];
 
     for (const sel of selections) {
-      const s = sel.site;
-      const useRegion = sel.useRegion;
-      const query = useRegion ? buildQuery(name, region) : name;
-
-      const ctx = {
-        name,
-        region: useRegion ? region : "",
-        query
-      };
-
-      links.push({
-        label: s.label,
-        url: s.build(ctx),
-        note: s.note,
-        badge: s.badge,
-        mode: s.mode,
+      const query = sel.useRegion ? buildQuery(name, region) : name;
+      items.push({
+        label: sel.site.label,
+        url: sel.site.build(query),
+        mode: sel.site.mode,
         searchText: query
       });
     }
 
-    for (const item of links) {
-      $out.appendChild(buildResultItem(item));
+    $out.innerHTML = "";
+
+    for (const item of items) {
+      const li = document.createElement("li");
+      li.className = "resultItem";
+
+      const title = document.createElement("a");
+      title.href = item.url;
+      title.target = "_blank";
+      title.rel = "noopener noreferrer";
+      title.textContent = item.label;
+
+      li.appendChild(title);
+
+      const actions = document.createElement("div");
+      actions.className = "resultActions";
+
+      if (item.mode === "direct") {
+        const openBtn = document.createElement("button");
+        openBtn.textContent = "開く";
+        openBtn.addEventListener("click", () => {
+          window.open(item.url, "_blank", "noopener,noreferrer");
+        });
+        actions.appendChild(openBtn);
+      } else {
+        const openCopyBtn = document.createElement("button");
+        openCopyBtn.textContent = "開いて検索語をコピー";
+        openCopyBtn.addEventListener("click", async () => {
+          const ok = await copyText(item.searchText);
+          window.open(item.url, "_blank", "noopener,noreferrer");
+          openCopyBtn.textContent = ok ? "コピーして開いた" : "開いた";
+          setTimeout(() => {
+            openCopyBtn.textContent = "開いて検索語をコピー";
+          }, 1200);
+        });
+        actions.appendChild(openCopyBtn);
+      }
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "検索語をコピー";
+      copyBtn.addEventListener("click", async () => {
+        const ok = await copyText(item.searchText);
+        copyBtn.textContent = ok ? "コピー済み" : "コピー失敗";
+        setTimeout(() => {
+          copyBtn.textContent = "検索語をコピー";
+        }, 1200);
+      });
+      actions.appendChild(copyBtn);
+
+      li.appendChild(actions);
+
+      const text = document.createElement("div");
+      text.className = "searchText";
+      text.textContent = `検索語: ${item.searchText}`;
+      li.appendChild(text);
+
+      $out.appendChild(li);
     }
 
     addToHistory(name, region);
-    return links;
   }
 
-  document.getElementById("gen").addEventListener("click", () => {
-    syncClearButtons();
-    generateLinks();
+  document.getElementById("gen").addEventListener("click", generateLinks);
+  document.getElementById("checkAll").addEventListener("click", () => {
+    document.querySelectorAll('input[data-type="enabled"]').forEach(cb => cb.checked = true);
+    saveSitePrefs(collectSitePrefsFromUI());
   });
-
-  document.getElementById("openAll").addEventListener("click", async () => {
-    const items = generateLinks();
-    for (const item of items) {
-      if (item.mode === "official-page") {
-        await copyText(item.searchText);
-      }
-      window.open(item.url, "_blank", "noopener,noreferrer");
-    }
+  document.getElementById("uncheckAll").addEventListener("click", () => {
+    document.querySelectorAll('input[data-type="enabled"]').forEach(cb => cb.checked = false);
+    saveSitePrefs(collectSitePrefsFromUI());
   });
-
   document.getElementById("clearHistory").addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEYS.history);
     renderHistory();
   });
 
-  const $toggleHistoryOrder = document.getElementById("toggleHistoryOrder");
-  function refreshHistoryOrderButton() {
-    $toggleHistoryOrder.textContent = historyOrderLabel(getHistoryOrder());
-  }
-  $toggleHistoryOrder.addEventListener("click", () => {
-    const next = getHistoryOrder() === "new" ? "old" : "new";
-    setHistoryOrder(next);
-    refreshHistoryOrderButton();
-    renderHistory();
-  });
-
-  document.getElementById("checkAll").addEventListener("click", () => {
-    for (const cb of $sites.querySelectorAll(`input[data-type="enabled"]`)) cb.checked = true;
-    saveSitePrefs(collectSitePrefsFromUI());
-  });
-
-  document.getElementById("uncheckAll").addEventListener("click", () => {
-    for (const cb of $sites.querySelectorAll(`input[data-type="enabled"]`)) cb.checked = false;
-    saveSitePrefs(collectSitePrefsFromUI());
-  });
-
   function onEnter(e) {
-    if (e.key === "Enter") {
-      syncClearButtons();
-      generateLinks();
-    }
+    if (e.key === "Enter") generateLinks();
   }
   $q.addEventListener("keydown", onEnter);
   $region.addEventListener("keydown", onEnter);
 
   buildSiteCheckboxes();
-  refreshHistoryOrderButton();
   renderHistory();
 </script>
 </body>
