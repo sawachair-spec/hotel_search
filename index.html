@@ -55,6 +55,11 @@
     .chipDel { border: 0; border-left: 1px solid #ddd; background: transparent; padding: 7px 10px; cursor: pointer; font-size: 14px; line-height: 1; }
     .chipDel:hover { background: #ffecec; }
 
+    #officialBtn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
     @media (max-width: 700px) {
       .row { flex-direction: column; align-items: stretch; }
       .field { flex: 0 0 auto; width: 100%; min-width: 0; }
@@ -90,7 +95,11 @@
   </div>
 
   <div class="box">
-    <div class="muted">検索結果</div>
+    <div class="row">
+      <div class="muted">検索結果</div>
+      <div class="spacer"></div>
+      <button id="officialBtn" type="button" disabled>公式ページ</button>
+    </div>
     <ul id="out"></ul>
   </div>
 
@@ -125,6 +134,9 @@
 
   const siteSearchUrl = (domain, query) =>
     `https://www.google.com/search?q=${enc(`site:${domain} ${query}`)}`;
+
+  const buildOfficialUrl = (name) =>
+    `https://www.google.com/search?q=${enc(`${(name ?? "").trim()} 公式`)}`;
 
   const SITES = [
     {
@@ -184,23 +196,50 @@
   const $history = document.getElementById("history");
   const $clearQ = document.getElementById("clearQ");
   const $clearRegion = document.getElementById("clearRegion");
+  const $officialBtn = document.getElementById("officialBtn");
+
+  function syncOfficialButton() {
+    const name = $q.value.trim();
+    $officialBtn.disabled = !name;
+  }
 
   function syncClearButtons() {
     $clearQ.style.display = $q.value ? "inline-flex" : "none";
     $clearRegion.style.display = $region.value ? "inline-flex" : "none";
+    syncOfficialButton();
   }
+
   $q.addEventListener("input", syncClearButtons);
   $region.addEventListener("input", syncClearButtons);
-  $clearQ.addEventListener("click", () => { $q.value = ""; syncClearButtons(); $q.focus(); });
-  $clearRegion.addEventListener("click", () => { $region.value = ""; syncClearButtons(); $region.focus(); });
+
+  $clearQ.addEventListener("click", () => {
+    $q.value = "";
+    syncClearButtons();
+    $q.focus();
+  });
+
+  $clearRegion.addEventListener("click", () => {
+    $region.value = "";
+    syncClearButtons();
+    $region.focus();
+  });
+
+  $officialBtn.addEventListener("click", () => {
+    const name = $q.value.trim();
+    if (!name) return;
+    window.open(buildOfficialUrl(name), "_blank", "noopener,noreferrer");
+  });
+
   syncClearButtons();
 
   function getHistoryOrder() {
     return localStorage.getItem(STORAGE_KEYS.historyOrder) || "new";
   }
+
   function setHistoryOrder(v) {
     localStorage.setItem(STORAGE_KEYS.historyOrder, v);
   }
+
   function historyOrderLabel(v) {
     return v === "old" ? "並び：古い順" : "並び：新しい順";
   }
@@ -209,9 +248,11 @@
     const raw = localStorage.getItem(STORAGE_KEYS.sitePrefs);
     return safeJsonParse(raw, null);
   }
+
   function saveSitePrefs(prefs) {
     localStorage.setItem(STORAGE_KEYS.sitePrefs, JSON.stringify(prefs));
   }
+
   function collectSitePrefsFromUI() {
     const prefs = {};
     for (const s of SITES) {
@@ -232,6 +273,7 @@
 
       const mainLabel = document.createElement("label");
       mainLabel.className = "siteMain";
+
       const cbEnable = document.createElement("input");
       cbEnable.type = "checkbox";
       cbEnable.dataset.siteId = s.id;
@@ -246,6 +288,7 @@
 
       const regionLabel = document.createElement("label");
       regionLabel.className = "siteRegion";
+
       const cbRegion = document.createElement("input");
       cbRegion.type = "checkbox";
       cbRegion.dataset.siteId = s.id;
@@ -282,9 +325,11 @@
     const arr = safeJsonParse(raw, []);
     return Array.isArray(arr) ? arr : [];
   }
+
   function saveHistory(arr) {
     localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(arr));
   }
+
   function historyKey(name, region) {
     return `${(name ?? "").trim()}|||${(region ?? "").trim()}`;
   }
@@ -353,7 +398,11 @@
   function generateLinks() {
     const name = $q.value.trim();
     const region = $region.value.trim();
-    if (!name) { $out.innerHTML = ""; return []; }
+    if (!name) {
+      $out.innerHTML = "";
+      syncOfficialButton();
+      return [];
+    }
 
     $out.innerHTML = "";
 
@@ -386,6 +435,7 @@
     }
 
     addToHistory(name, region);
+    syncOfficialButton();
     return links;
   }
 
@@ -403,6 +453,7 @@
   function refreshHistoryOrderButton() {
     $toggleHistoryOrder.textContent = historyOrderLabel(getHistoryOrder());
   }
+
   $toggleHistoryOrder.addEventListener("click", () => {
     const next = getHistoryOrder() === "new" ? "old" : "new";
     setHistoryOrder(next);
@@ -426,12 +477,14 @@
       generateLinks();
     }
   }
+
   $q.addEventListener("keydown", onEnter);
   $region.addEventListener("keydown", onEnter);
 
   buildSiteCheckboxes();
   refreshHistoryOrderButton();
   renderHistory();
+  syncOfficialButton();
 </script>
 </body>
 </html>
