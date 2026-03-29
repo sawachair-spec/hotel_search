@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ホテル検索 横断くん</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; line-height: 1.5; margin: 24px; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      line-height: 1.5;
+      margin: 24px;
+    }
     h1 { margin: 0 0 12px; font-size: 20px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     input[type="text"] { padding: 10px 12px; font-size: 16px; }
     button { padding: 10px 12px; font-size: 14px; cursor: pointer; }
-    ul { padding-left: 18px; }
-    li { margin: 6px 0; }
     .muted { color:#666; font-size: 12px; }
     .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 14px; }
     .spacer { flex: 1; }
@@ -47,6 +49,67 @@
     .siteMain { display:flex; gap: 8px; align-items:center; }
     .siteRegion { display:flex; gap: 6px; align-items:center; color:#333; font-size: 13px; }
     .siteRegion input { transform: translateY(1px); }
+    .siteHint {
+      font-size: 12px;
+      color: #666;
+      margin-left: 4px;
+    }
+
+    .resultList { list-style: none; padding-left: 0; margin: 10px 0 0; }
+    .resultItem {
+      border: 1px solid #e2e2e2;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .resultTop {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .resultTop a {
+      font-weight: 700;
+      color: #0b57d0;
+      text-decoration: none;
+    }
+    .resultTop a:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #cfcfcf;
+      background: #f7f7f7;
+      color: #333;
+    }
+    .badge.direct {
+      background: #eef7ee;
+      border-color: #bdd8bd;
+    }
+    .badge.official {
+      background: #f6f6fb;
+      border-color: #d5d7ee;
+    }
+
+    .resultActions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .searchText {
+      font-size: 13px;
+      background: #fafafa;
+      border: 1px dashed #d6d6d6;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
 
     .history { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .chipWrap { display: inline-flex; align-items: center; border: 1px solid #ddd; border-radius: 999px; overflow: hidden; background: #fff; }
@@ -58,7 +121,7 @@
     @media (max-width: 700px) {
       .row { flex-direction: column; align-items: stretch; }
       .field { flex: 0 0 auto; width: 100%; min-width: 0; }
-      #gen { width: 100%; }
+      #gen, #openAll { width: 100%; }
     }
   </style>
 </head>
@@ -77,6 +140,7 @@
     </div>
 
     <button id="gen">検索</button>
+    <button id="openAll" type="button">全部開く</button>
   </div>
 
   <div class="box">
@@ -90,8 +154,10 @@
   </div>
 
   <div class="box">
-    <div class="muted">検索結果</div>
-    <ul id="out"></ul>
+    <div class="muted">
+      検索結果。公式検索URLがあるサイトは直接結果へ。ないサイトは公式ページを開いて検索語をコピーします。
+    </div>
+    <ul id="out" class="resultList"></ul>
   </div>
 
   <div class="box">
@@ -108,9 +174,9 @@
   const enc = (s) => encodeURIComponent((s ?? "").trim());
 
   const STORAGE_KEYS = {
-    historyOrder: "hotel_xb_history_order_v1",
-    sitePrefs: "hotel_xb_site_prefs_v1",
-    history: "hotel_xb_history_v1",
+    historyOrder: "hotel_xb_history_order_v2",
+    sitePrefs: "hotel_xb_site_prefs_v2",
+    history: "hotel_xb_history_v2",
   };
 
   const safeJsonParse = (s, fallback) => {
@@ -123,57 +189,87 @@
     return r ? `${n} ${r}` : n;
   };
 
-  const siteSearchUrl = (domain, query) =>
-    `https://www.google.com/search?q=${enc(`site:${domain} ${query}`)}`;
-
   const SITES = [
     {
       id: "rakuten",
       label: "楽天トラベル",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("travel.rakuten.co.jp", ctx.query)
+      mode: "direct",
+      badge: "公式検索URL",
+      hint: "直接検索",
+      note: "公式キーワード検索結果を直接開きます。",
+      build: (ctx) =>
+        `https://kw.travel.rakuten.co.jp/keyword/Search.do?f_query=${enc(ctx.query)}`
     },
     {
       id: "jalan",
       label: "じゃらん",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("jalan.net", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "公式トップを開きます。検索語を貼り付けて使ってください。",
+      build: () => "https://www.jalan.net/"
     },
     {
       id: "yahoo_travel",
       label: "Yahooトラベル",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("travel.yahoo.co.jp", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      build: () => "https://travel.yahoo.co.jp/"
     },
     {
       id: "ikyu",
       label: "一休.com",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("ikyu.com", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      build: () => "https://www.ikyu.com/"
     },
     {
       id: "jtb",
       label: "JTB",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("jtb.co.jp", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "JTB国内ホテルページを開きます。検索語を貼り付けて検索してください。",
+      build: () => "https://www.jtb.co.jp/kokunai-hotel/"
     },
     {
       id: "booking",
       label: "Booking.com",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("booking.com", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "公式ページを開きます。検索語を貼り付け、日付などを入れて検索してください。",
+      build: () => "https://www.booking.com/"
     },
     {
       id: "expedia",
       label: "Expedia",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("expedia.com", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "ホテル検索ページを開きます。検索語を貼り付け、日付などを入れて検索してください。",
+      build: () => "https://www.expedia.com/Hotels"
     },
     {
       id: "agoda",
       label: "Agoda",
       useRegionDefault: true,
-      build: (ctx) => siteSearchUrl("agoda.com", ctx.query)
+      mode: "official-page",
+      badge: "公式ページ",
+      hint: "検索語コピー",
+      note: "公式ページを開きます。検索語を貼り付けて検索してください。",
+      build: () => "https://www.agoda.com/"
     },
   ];
 
@@ -232,6 +328,7 @@
 
       const mainLabel = document.createElement("label");
       mainLabel.className = "siteMain";
+
       const cbEnable = document.createElement("input");
       cbEnable.type = "checkbox";
       cbEnable.dataset.siteId = s.id;
@@ -241,11 +338,17 @@
       const span = document.createElement("span");
       span.textContent = s.label;
 
+      const hint = document.createElement("span");
+      hint.className = "siteHint";
+      hint.textContent = `(${s.hint})`;
+
       mainLabel.appendChild(cbEnable);
       mainLabel.appendChild(span);
+      mainLabel.appendChild(hint);
 
       const regionLabel = document.createElement("label");
       regionLabel.className = "siteRegion";
+
       const cbRegion = document.createElement("input");
       cbRegion.type = "checkbox";
       cbRegion.dataset.siteId = s.id;
@@ -350,10 +453,99 @@
     renderHistory();
   }
 
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      }
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+
+  async function openSiteWithCopy(item) {
+    if (item.mode === "official-page") {
+      await copyText(item.searchText);
+    }
+    window.open(item.url, "_blank", "noopener,noreferrer");
+  }
+
+  function buildResultItem(item) {
+    const li = document.createElement("li");
+    li.className = "resultItem";
+
+    const top = document.createElement("div");
+    top.className = "resultTop";
+
+    const link = document.createElement("a");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = item.label;
+
+    const badge = document.createElement("span");
+    badge.className = `badge ${item.mode === "direct" ? "direct" : "official"}`;
+    badge.textContent = item.badge;
+
+    top.appendChild(link);
+    top.appendChild(badge);
+
+    const actions = document.createElement("div");
+    actions.className = "resultActions";
+
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.textContent = item.mode === "direct" ? "開く" : "開いて検索語をコピー";
+    openBtn.addEventListener("click", () => openSiteWithCopy(item));
+
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.textContent = "検索語をコピー";
+    copyBtn.addEventListener("click", async () => {
+      const ok = await copyText(item.searchText);
+      copyBtn.textContent = ok ? "コピー済み" : "コピー失敗";
+      setTimeout(() => { copyBtn.textContent = "検索語をコピー"; }, 1200);
+    });
+
+    actions.appendChild(openBtn);
+    actions.appendChild(copyBtn);
+
+    const searchText = document.createElement("div");
+    searchText.className = "searchText";
+    searchText.textContent = `検索語: ${item.searchText}`;
+
+    const note = document.createElement("div");
+    note.className = "muted";
+    note.textContent = item.note;
+
+    li.appendChild(top);
+    li.appendChild(actions);
+    li.appendChild(searchText);
+    li.appendChild(note);
+
+    return li;
+  }
+
   function generateLinks() {
     const name = $q.value.trim();
     const region = $region.value.trim();
-    if (!name) { $out.innerHTML = ""; return []; }
+    if (!name) {
+      $out.innerHTML = "";
+      return [];
+    }
 
     $out.innerHTML = "";
 
@@ -371,18 +563,18 @@
         query
       };
 
-      links.push({ label: s.label, url: s.build(ctx) });
+      links.push({
+        label: s.label,
+        url: s.build(ctx),
+        note: s.note,
+        badge: s.badge,
+        mode: s.mode,
+        searchText: query
+      });
     }
 
     for (const item of links) {
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.href = item.url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.textContent = item.label;
-      li.appendChild(a);
-      $out.appendChild(li);
+      $out.appendChild(buildResultItem(item));
     }
 
     addToHistory(name, region);
@@ -392,6 +584,16 @@
   document.getElementById("gen").addEventListener("click", () => {
     syncClearButtons();
     generateLinks();
+  });
+
+  document.getElementById("openAll").addEventListener("click", async () => {
+    const items = generateLinks();
+    for (const item of items) {
+      if (item.mode === "official-page") {
+        await copyText(item.searchText);
+      }
+      window.open(item.url, "_blank", "noopener,noreferrer");
+    }
   });
 
   document.getElementById("clearHistory").addEventListener("click", () => {
